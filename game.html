@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer: The Asteroid Escape</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #111;
+            border: 2px solid white;
+        }
+        #game-over {
+            text-align: center;
+            font-size: 50px;
+            display: none;
+        }
+        #start-screen {
+            text-align: center;
+            font-size: 30px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Space Explorer: The Asteroid Escape</h1>
+        <p>Press Enter to Start</p>
+    </div>
+    
+    <div id="game-over">
+        <h1>Game Over</h1>
+        <p>Your Score: <span id="final-score"></span></p>
+        <p>Press Enter to Restart</p>
+        <p>Or <a href="index.html" id="post">Go to Home</a></p> <!-- Home Link -->
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Adding Background Music -->
+    <audio id="background-music" loop>
+        <source src="assets/audio/stranger-things-124008.mp3" type="audio/mp3"> <!-- File stored in an 'audio' folder -->
+    </audio>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let spaceship, asteroids = [], score = 0, gameOver = false;
+
+        // Spaceship properties
+        const spaceshipWidth = 50, spaceshipHeight = 50;
+        const spaceshipSpeed = 5;
+        const spaceshipImage = new Image();
+        spaceshipImage.src = 'https://cdn.creazilla.com/cliparts/67950/cartoon-spaceship-clipart-xl.png'; // Replace with your spaceship image URL
+
+        // Asteroid properties
+        const asteroidWidth = 60, asteroidHeight = 60;
+        const asteroidSpeedBase = 2;
+        const asteroidImage = new Image();
+        asteroidImage.src = 'https://static.vecteezy.com/system/resources/thumbnails/018/803/017/small_2x/cartoon-asteroid-icon-png.png'; // Replace with your asteroid image URL
+
+        // Event listeners for spaceship movement
+        let moveLeft = false, moveRight = false;
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft") moveLeft = true;
+            if (e.key === "ArrowRight") moveRight = true;
+            if (e.key === "Enter" && gameOver) restartGame();
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (e.key === "ArrowLeft") moveLeft = false;
+            if (e.key === "ArrowRight") moveRight = false;
+        });
+
+        // Spaceship object
+        function createSpaceship() {
+            spaceship = {
+                x: canvas.width / 2 - spaceshipWidth / 2,
+                y: canvas.height - spaceshipHeight - 10,
+                width: spaceshipWidth,
+                height: spaceshipHeight,
+                color: "lightblue"
+            };
+        }
+
+        // Asteroid object
+        function createAsteroid() {
+            const x = Math.random() * (canvas.width - asteroidWidth);
+            const y = -asteroidHeight;
+            const speed = asteroidSpeedBase + Math.random() * 3;
+            asteroids.push({ x, y, width: asteroidWidth, height: asteroidHeight, speed });
+        }
+
+        // Draw the spaceship
+        function drawSpaceship() {
+            ctx.drawImage(spaceshipImage, spaceship.x, spaceship.y, spaceship.width, spaceship.height);
+        }
+
+        // Draw the asteroids
+        function drawAsteroids() {
+            asteroids.forEach(asteroid => {
+                ctx.drawImage(asteroidImage, asteroid.x, asteroid.y, asteroid.width, asteroid.height);
+            });
+        }
+
+        // Move the asteroids
+        function moveAsteroids() {
+            asteroids.forEach(asteroid => {
+                asteroid.y += asteroid.speed;
+            });
+        }
+
+        // Detect collision with the spaceship
+        function checkCollision() {
+            asteroids.forEach(asteroid => {
+                if (
+                    spaceship.x < asteroid.x + asteroid.width &&
+                    spaceship.x + spaceship.width > asteroid.x &&
+                    spaceship.y < asteroid.y + asteroid.height &&
+                    spaceship.y + spaceship.height > asteroid.y
+                ) {
+                    gameOver = true;
+                    document.getElementById("final-score").textContent = score;
+                    document.getElementById("game-over").style.display = "block";
+                }
+            });
+        }
+
+        // Update the score
+        function updateScore() {
+            score++;
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillText("Score: " + score, 20, 40);
+        }
+
+        // Game logic
+        function gameLoop() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (moveLeft && spaceship.x > 0) spaceship.x -= spaceshipSpeed;
+            if (moveRight && spaceship.x + spaceship.width < canvas.width) spaceship.x += spaceshipSpeed;
+
+            drawSpaceship();
+            moveAsteroids();
+            drawAsteroids();
+            checkCollision();
+            updateScore();
+
+            // Generate asteroids at random intervals
+            if (Math.random() < 0.02) {
+                createAsteroid();
+            }
+
+            // Remove off-screen asteroids
+            asteroids = asteroids.filter(asteroid => asteroid.y < canvas.height);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        function startGame() {
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("game-over").style.display = "none";
+            createSpaceship();
+            gameLoop();
+            // Start background music when the game starts
+            document.getElementById("background-music").play();
+        }
+
+        // Restart the game
+        function restartGame() {
+            gameOver = false;
+            score = 0;
+            asteroids = [];
+            document.getElementById("game-over").style.display = "none";
+            startGame();
+        }
+
+        // Listen for the Enter key to start the game
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !gameOver) {
+                startGame();
+            }
+        });
+
+        // Home link redirect (change the href to your desired URL)
+        document.getElementById("home-link").addEventListener("click", function(e) {
+            e.preventDefault();  // Prevent default anchor behavior
+            window.location.href = "file:///Users/alonsoincaroca/Desktop/IS%20201/CLASS/FINAL%20PROJECT/index.html"; // Replace with your home URL
+        });
+
+    </script>
+</body>
+</html>
